@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include "Placa_IOT.h"
 
 void setup() {
   Serial.begin(9600);
