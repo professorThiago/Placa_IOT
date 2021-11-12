@@ -4,10 +4,10 @@
 Placa_IOT placa;
 
 void setup() {
-  placa.rele1_acionar();
-  placa.rele1_desacionar();
+Serial.begin(9600);
 }
 
 void loop() {
-  
+placa.display(1, 123, 0);
+
 }
