@@ -26,15 +26,18 @@ Placa_IOT::Placa_IOT()
 //LIGADO, DESLIGADO ou ALTERNAR
 bool Placa_IOT::rele(uint8_t rele, uint8_t opcao)
 {
-    bool _status;
+    bool _status = 0;
     uint8_t selecaoRele = rele;
-    if(selecaoRele <=3)
+    if (selecaoRele <= 3)
     {
-        if(selecaoRele == 1) selecaoRele = RELE1;
-        else if(selecaoRele == 2) selecaoRele = RELE2;
-        else if(selecaoRele == 3)selecaoRele = RELE3;
+        if (selecaoRele == 1)
+            selecaoRele = RELE1;
+        else if (selecaoRele == 2)
+            selecaoRele = RELE2;
+        else if (selecaoRele == 3)
+            selecaoRele = RELE3;
     }
-    
+
     if (opcao == DESLIGADO)
     {
         mcp.digitalWrite(selecaoRele, LOW);
@@ -76,6 +79,12 @@ void Placa_IOT::display(int numero)
 
     (caractere_display < 3) ? caractere_display++ : caractere_display = 0;
 }
+
+void Placa_IOT::display(String numero)
+{
+    display(numero.toInt());
+}
+ 
 void Placa_IOT::display(int numero, uint8_t dp)
 {
     uint16_t valor[4];
@@ -280,7 +289,7 @@ void Placa_IOT::display(char dA, char dB, char dC, char dD, uint8_t dp = 0)
     else
         valor[3] = 16;
 
-        display_dp = dp;
+    display_dp = dp;
 
     if (caractere_display + 1 == display_dp)
     {
@@ -301,7 +310,7 @@ void Placa_IOT::display(char dA, char dB, char dC, char dD, uint8_t dp = 0)
     (caractere_display < 3) ? caractere_display++ : caractere_display = 0;
 }
 
-bool Placa_IOT::botaoApertado(uint8_t botao)
+bool Placa_IOT::botaoApertado(uint8_t botao, bool borda)
 {
     bool statusSaida = 0;
     unsigned long tempoAtual = millis();
@@ -313,7 +322,7 @@ bool Placa_IOT::botaoApertado(uint8_t botao)
     uint8_t pinBotao;
     if (btn == 0)
         pinBotao = BOTAO1;
-    else if (btn== 1)
+    else if (btn == 1)
         pinBotao = BOTAO2;
     else
         pinBotao = BOTAO3;
@@ -321,68 +330,83 @@ bool Placa_IOT::botaoApertado(uint8_t botao)
     bool estadoAtualBotao = digitalRead(pinBotao);
 
     if (estadoAtualBotao != estadoAnteriorBotao[btn])
-        tempoInicialBotao[btn]=tempoAtual;
+        tempoInicialBotao[btn] = tempoAtual;
 
-    if(tempoAtual - tempoInicialBotao[btn] > tempoDebouce)
+    if (tempoAtual - tempoInicialBotao[btn] > tempoDebouce)
     {
-        if(acaoExecutadaBotao[btn] != estadoAtualBotao)
+        if (acaoExecutadaBotao[btn] != estadoAtualBotao)
         {
             acaoExecutadaBotao[btn] = estadoAtualBotao;
-            if(btn == 0)
+            if (btn == 0)
             {
-                if(estadoAtualBotao == 1) statusSaida = 1;
+                if (estadoAtualBotao == borda)
+                    statusSaida = 1;
             }
 
             else
             {
-                if(estadoAtualBotao == 0) statusSaida = 1;
+                if (estadoAtualBotao == !borda)
+                    statusSaida = 1;
             }
-
         }
     }
     estadoAnteriorBotao[btn] = estadoAtualBotao;
     return statusSaida;
 }
 
-bool Placa_IOT::botaoSolto(uint8_t botao)
+char Placa_IOT::teclado()
 {
-    bool statusSaida = 0;
+    char envio = 'n';
     unsigned long tempoAtual = millis();
-
-    uint8_t btn = botao - 1;
-    if (btn > 2)
-        btn = 0;
-
-    uint8_t pinBotao;
-    if (btn == 0)
-        pinBotao = BOTAO1;
-    else if (btn== 1)
-        pinBotao = BOTAO2;
-    else
-        pinBotao = BOTAO3;
-
-    bool estadoAtualBotao = digitalRead(pinBotao);
-
-    if (estadoAtualBotao != estadoAnteriorBotao[btn])
-        tempoInicialBotao[btn]=tempoAtual;
-
-    if(tempoAtual - tempoInicialBotao[btn] > tempoDebouce)
+    char teclaPressionada = 'n';
+    if (tempoAtual - tempoUltimaLeituraTeclado > tempoEntreLeiturasTeclado)
     {
-        if(acaoExecutadaBotao[btn] != estadoAtualBotao)
+        tempoUltimaLeituraTeclado = tempoAtual;
+        byte leitura = 0;
+
+        for (int x = 0; x < 4; x++)
         {
-            acaoExecutadaBotao[btn] = estadoAtualBotao;
-            if(btn == 0)
+            mcp.digitalWrite(mapaPinLinha[x], LOW);
+            leitura = mcp.readGPIOA();
+            leitura = leitura >> 4;
+            for (int y = 0; y < 4; y++)
             {
-                if(estadoAtualBotao == 0) statusSaida = 1;
+                int bitLido = pow(2, y);
+                if ((leitura & bitLido) == 0)
+                    teclaPressionada = mapaCaracteresTeclado[x][y];
             }
+            mcp.digitalWrite(mapaPinLinha[x], HIGH);
+        }
 
-            else
-            {
-                if(estadoAtualBotao == 1) statusSaida = 1;
-            }
-
+        if (teclaPressionada != teclaAnterior)
+        {
+            envio = teclaPressionada;
+            teclaAnterior = teclaPressionada;
         }
     }
-    estadoAnteriorBotao[btn] = estadoAtualBotao;
-    return statusSaida;
+    return envio;
+}
+
+void Placa_IOT::formarTentativaSenha(char caractere)
+{
+    password += caractere;
+}
+
+void Placa_IOT::definirSenha(String senha)
+{
+    this->senha = senha;
+}
+
+void Placa_IOT::limparTentativaSenha()
+{
+    password = "";
+}
+
+bool Placa_IOT::verificarSenha()
+{
+    return (senha == password) ? true : false;
+}
+
+String Placa_IOT::getSenha(){
+    return password;
 }

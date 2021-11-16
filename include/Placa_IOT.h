@@ -36,19 +36,30 @@ private:
     bool estadoAnteriorBotao[3] = {0, 1, 1};
     const unsigned long tempoDebouce = 20;
     bool acaoExecutadaBotao[3] = {0, 1, 1};
+    char teclaAnterior;
+    unsigned long tempoUltimaLeituraTeclado;
+    String password = "";
+    String senha = "";
 
 public:
     Placa_IOT();
     bool rele(uint8_t rele);
     bool rele(uint8_t rele, uint8_t opcao);
     void display(int numero);
+    void display(String numero);
     void display(int numero, uint8_t dp);
     void display(char dA, int numero, uint8_t dp);
     void display(char dA, char dB, int numero, uint8_t dp);
     void display(char dA, char dB, char dC, int numero, uint8_t dp);
     void display(char dA, char dB, char dC, char dD, uint8_t dp);
-    bool botaoApertado(uint8_t botao);
-    bool botaoSolto(uint8_t botao);
+    bool botaoApertado(uint8_t botao, bool borda);
+    char teclado();
+    void formarTentativaSenha(char caractere);
+    void definirSenha(String senha);
+    void limparTentativaSenha();
+    bool verificarSenha();
+    String getSenha();
+    unsigned long tempoEntreLeiturasTeclado = 100;
 };
 
 #endif
