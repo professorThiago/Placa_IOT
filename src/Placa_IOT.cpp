@@ -10,30 +10,49 @@ Placa_IOT::Placa_IOT()
     pinMode(pinData, OUTPUT);
     pinMode(pinClock, OUTPUT);
     pinMode(pinLatch, OUTPUT);
+
+    pinMode(BOTAO1, INPUT);
+    pinMode(BOTAO2, INPUT_PULLUP);
+    pinMode(BOTAO3, INPUT_PULLUP);
+
+    for (int i = 0; i < 4; i++)
+    {
+        mcp.pinMode(mapaPinLinha[i], OUTPUT);
+        mcp.pinMode(mapaPinColuna[i], INPUT_PULLUP);
+        mcp.digitalWrite(mapaPinLinha[i], HIGH);
+    }
 }
 
 //LIGADO, DESLIGADO ou ALTERNAR
 bool Placa_IOT::rele(uint8_t rele, uint8_t opcao)
 {
-    bool status;
+    bool _status;
+    uint8_t selecaoRele = rele;
+    if(selecaoRele <=3)
+    {
+        if(selecaoRele == 1) selecaoRele = RELE1;
+        else if(selecaoRele == 2) selecaoRele = RELE2;
+        else if(selecaoRele == 3)selecaoRele = RELE3;
+    }
+    
     if (opcao == DESLIGADO)
     {
-        mcp.digitalWrite(rele, LOW);
-        status = LOW;
+        mcp.digitalWrite(selecaoRele, LOW);
+        _status = LOW;
     }
 
     else if (opcao == LIGADO)
     {
-        mcp.digitalWrite(rele, HIGH);
-        status = HIGH;
+        mcp.digitalWrite(selecaoRele, HIGH);
+        _status = HIGH;
     }
 
     else if (opcao == ALTERNAR)
     {
-        status = !mcp.digitalRead(rele);
-        mcp.digitalWrite(rele, status);
+        _status = !mcp.digitalRead(selecaoRele);
+        mcp.digitalWrite(selecaoRele, _status);
     }
-    return status;
+    return _status;
 }
 
 //Retorna o estado do rele
@@ -42,7 +61,6 @@ bool Placa_IOT::rele(uint8_t rele)
     bool status = !mcp.digitalRead(rele);
     return status;
 }
-
 void Placa_IOT::display(int numero)
 {
     uint16_t valor[4];
@@ -58,10 +76,11 @@ void Placa_IOT::display(int numero)
 
     (caractere_display < 3) ? caractere_display++ : caractere_display = 0;
 }
-
 void Placa_IOT::display(int numero, uint8_t dp)
 {
     uint16_t valor[4];
+
+    display_dp = dp;
 
     valor[0] = numero / 1000;
     valor[1] = (numero / 100) % 10;
@@ -86,7 +105,6 @@ void Placa_IOT::display(int numero, uint8_t dp)
 
     (caractere_display < 3) ? caractere_display++ : caractere_display = 0;
 }
-
 void Placa_IOT::display(char dA, int numero, uint8_t dp = 0)
 {
     uint16_t valor[4];
@@ -104,6 +122,8 @@ void Placa_IOT::display(char dA, int numero, uint8_t dp = 0)
     valor[2] = (numero / 10) % 10;
     valor[3] = numero % 10;
 
+    display_dp = dp;
+
     if (caractere_display + 1 == display_dp)
     {
         digitalWrite(pinLatch, LOW);
@@ -122,7 +142,6 @@ void Placa_IOT::display(char dA, int numero, uint8_t dp = 0)
 
     (caractere_display < 3) ? caractere_display++ : caractere_display = 0;
 }
-
 void Placa_IOT::display(char dA, char dB, int numero, uint8_t dp = 0)
 {
     uint16_t valor[4];
@@ -147,6 +166,8 @@ void Placa_IOT::display(char dA, char dB, int numero, uint8_t dp = 0)
 
     valor[2] = numero / 10;
     valor[3] = numero % 10;
+
+    display_dp = dp;
 
     if (caractere_display + 1 == display_dp)
     {
@@ -198,6 +219,8 @@ void Placa_IOT::display(char dA, char dB, char dC, int numero, uint8_t dp = 0)
         valor[2] = 16;
 
     valor[3] = numero % 10;
+
+    display_dp = dp;
 
     if (caractere_display + 1 == display_dp)
     {
@@ -257,6 +280,8 @@ void Placa_IOT::display(char dA, char dB, char dC, char dD, uint8_t dp = 0)
     else
         valor[3] = 16;
 
+        display_dp = dp;
+
     if (caractere_display + 1 == display_dp)
     {
         digitalWrite(pinLatch, LOW);
@@ -274,4 +299,90 @@ void Placa_IOT::display(char dA, char dB, char dC, char dD, uint8_t dp = 0)
     }
 
     (caractere_display < 3) ? caractere_display++ : caractere_display = 0;
+}
+
+bool Placa_IOT::botaoApertado(uint8_t botao)
+{
+    bool statusSaida = 0;
+    unsigned long tempoAtual = millis();
+
+    uint8_t btn = botao - 1;
+    if (btn > 2)
+        btn = 0;
+
+    uint8_t pinBotao;
+    if (btn == 0)
+        pinBotao = BOTAO1;
+    else if (btn== 1)
+        pinBotao = BOTAO2;
+    else
+        pinBotao = BOTAO3;
+
+    bool estadoAtualBotao = digitalRead(pinBotao);
+
+    if (estadoAtualBotao != estadoAnteriorBotao[btn])
+        tempoInicialBotao[btn]=tempoAtual;
+
+    if(tempoAtual - tempoInicialBotao[btn] > tempoDebouce)
+    {
+        if(acaoExecutadaBotao[btn] != estadoAtualBotao)
+        {
+            acaoExecutadaBotao[btn] = estadoAtualBotao;
+            if(btn == 0)
+            {
+                if(estadoAtualBotao == 1) statusSaida = 1;
+            }
+
+            else
+            {
+                if(estadoAtualBotao == 0) statusSaida = 1;
+            }
+
+        }
+    }
+    estadoAnteriorBotao[btn] = estadoAtualBotao;
+    return statusSaida;
+}
+
+bool Placa_IOT::botaoSolto(uint8_t botao)
+{
+    bool statusSaida = 0;
+    unsigned long tempoAtual = millis();
+
+    uint8_t btn = botao - 1;
+    if (btn > 2)
+        btn = 0;
+
+    uint8_t pinBotao;
+    if (btn == 0)
+        pinBotao = BOTAO1;
+    else if (btn== 1)
+        pinBotao = BOTAO2;
+    else
+        pinBotao = BOTAO3;
+
+    bool estadoAtualBotao = digitalRead(pinBotao);
+
+    if (estadoAtualBotao != estadoAnteriorBotao[btn])
+        tempoInicialBotao[btn]=tempoAtual;
+
+    if(tempoAtual - tempoInicialBotao[btn] > tempoDebouce)
+    {
+        if(acaoExecutadaBotao[btn] != estadoAtualBotao)
+        {
+            acaoExecutadaBotao[btn] = estadoAtualBotao;
+            if(btn == 0)
+            {
+                if(estadoAtualBotao == 0) statusSaida = 1;
+            }
+
+            else
+            {
+                if(estadoAtualBotao == 1) statusSaida = 1;
+            }
+
+        }
+    }
+    estadoAnteriorBotao[btn] = estadoAtualBotao;
+    return statusSaida;
 }
