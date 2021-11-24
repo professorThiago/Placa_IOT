@@ -21,6 +21,10 @@ Placa_IOT::Placa_IOT()
         mcp.pinMode(mapaPinColuna[i], INPUT_PULLUP);
         mcp.digitalWrite(mapaPinLinha[i], HIGH);
     }
+
+    mcp.pinMode(DirMotorPasso, OUTPUT);
+    mcp.pinMode(PINPASSO, OUTPUT);
+    mcp.pinMode(MS1, OUTPUT);
 }
 
 //LIGADO, DESLIGADO ou ALTERNAR
@@ -64,6 +68,8 @@ bool Placa_IOT::rele(uint8_t rele)
     bool status = !mcp.digitalRead(rele);
     return status;
 }
+
+//
 void Placa_IOT::display(int numero)
 {
     uint16_t valor[4];
@@ -80,11 +86,13 @@ void Placa_IOT::display(int numero)
     (caractere_display < 3) ? caractere_display++ : caractere_display = 0;
 }
 
+//
 void Placa_IOT::display(String numero)
 {
     display(numero.toInt());
 }
- 
+
+//
 void Placa_IOT::display(int numero, uint8_t dp)
 {
     uint16_t valor[4];
@@ -114,6 +122,8 @@ void Placa_IOT::display(int numero, uint8_t dp)
 
     (caractere_display < 3) ? caractere_display++ : caractere_display = 0;
 }
+
+//
 void Placa_IOT::display(char dA, int numero, uint8_t dp = 0)
 {
     uint16_t valor[4];
@@ -151,6 +161,8 @@ void Placa_IOT::display(char dA, int numero, uint8_t dp = 0)
 
     (caractere_display < 3) ? caractere_display++ : caractere_display = 0;
 }
+
+//
 void Placa_IOT::display(char dA, char dB, int numero, uint8_t dp = 0)
 {
     uint16_t valor[4];
@@ -196,6 +208,8 @@ void Placa_IOT::display(char dA, char dB, int numero, uint8_t dp = 0)
 
     (caractere_display < 3) ? caractere_display++ : caractere_display = 0;
 }
+
+//
 void Placa_IOT::display(char dA, char dB, char dC, int numero, uint8_t dp = 0)
 {
     uint16_t valor[4];
@@ -249,6 +263,8 @@ void Placa_IOT::display(char dA, char dB, char dC, int numero, uint8_t dp = 0)
 
     (caractere_display < 3) ? caractere_display++ : caractere_display = 0;
 }
+
+//
 void Placa_IOT::display(char dA, char dB, char dC, char dD, uint8_t dp = 0)
 {
     uint16_t valor[4];
@@ -310,6 +326,7 @@ void Placa_IOT::display(char dA, char dB, char dC, char dD, uint8_t dp = 0)
     (caractere_display < 3) ? caractere_display++ : caractere_display = 0;
 }
 
+//
 bool Placa_IOT::botaoApertado(uint8_t botao, bool borda)
 {
     bool statusSaida = 0;
@@ -354,6 +371,7 @@ bool Placa_IOT::botaoApertado(uint8_t botao, bool borda)
     return statusSaida;
 }
 
+//
 char Placa_IOT::teclado()
 {
     char envio = 'n';
@@ -387,26 +405,123 @@ char Placa_IOT::teclado()
     return envio;
 }
 
-void Placa_IOT::formarTentativaSenha(char caractere)
+//
+void Placa_IOT::formarPalavraSenha(char caractere)
 {
     password += caractere;
 }
 
+//
 void Placa_IOT::definirSenha(String senha)
 {
     this->senha = senha;
 }
 
-void Placa_IOT::limparTentativaSenha()
+//
+void Placa_IOT::limparPalavraSenha()
 {
     password = "";
 }
 
+//
 bool Placa_IOT::verificarSenha()
 {
     return (senha == password) ? true : false;
 }
 
-String Placa_IOT::getSenha(){
+//
+String Placa_IOT::getSenha()
+{
     return password;
+}
+
+//
+void Placa_IOT::motorpasso(int passo)
+{
+    if (!tarefaPassoExecutando)
+        tarefaPasso = passo;
+}
+//
+bool Placa_IOT::motorpassoUPDATE()
+{
+    unsigned long tempoAtual = millis();
+    if (tarefaPassoExecutando == 0 && tarefaPasso != 0)
+    {
+        if (tarefaPasso < 0)
+        {
+            tarefaPasso = abs(tarefaPasso);
+            mcp.digitalWrite(DirMotorPasso, 0);
+        }
+        else
+            mcp.digitalWrite(DirMotorPasso, 1);
+
+        tarefaPassoExecutando = 1;
+    }
+
+    if (tarefaPassoExecutando)
+    {
+        if (tempoAtual - tempoInicialPassos > _tempoEntrePassos)
+        {
+            tempoInicialPassos = tempoAtual;
+
+            if (tarefaPasso > 0)
+            {
+                passo();
+                tarefaPasso--;
+
+                if (tarefaPasso == 0)
+                {
+                    tarefaPassoExecutando = 0;
+                }
+            }
+        }
+    }
+    return tarefaPassoExecutando;
+}
+
+void Placa_IOT::passo()
+{
+    mcp.digitalWrite(PINPASSO, HIGH);
+    mcp.digitalWrite(PINPASSO, LOW);
+}
+
+void Placa_IOT::tempoEntrePassos(unsigned long tempo)
+{
+    _tempoEntrePassos = tempo;
+}
+
+void Placa_IOT::modoPasso(uint8_t MODO)
+{
+    switch (MODO)
+    {
+    case 2:
+        mcp.digitalWrite(MS1, HIGH);
+        mcp.digitalWrite(MS2, LOW);
+        mcp.digitalWrite(MS3, LOW);
+        break;
+
+    case 4:
+        mcp.digitalWrite(MS1, LOW);
+        mcp.digitalWrite(MS2, HIGH);
+        mcp.digitalWrite(MS3, LOW);
+        break;
+
+    case 8:
+        mcp.digitalWrite(MS1, HIGH);
+        mcp.digitalWrite(MS2, HIGH);
+        mcp.digitalWrite(MS3, LOW);
+        break;
+
+    case 16:
+        mcp.digitalWrite(MS1, HIGH);
+        mcp.digitalWrite(MS2, HIGH);
+        mcp.digitalWrite(MS3, HIGH);
+        break;
+
+    default:
+        mcp.digitalWrite(MS1, LOW);
+        mcp.digitalWrite(MS2, LOW);
+        mcp.digitalWrite(MS3, LOW);
+        break;
+    }
 }

@@ -5,26 +5,19 @@ Placa_IOT placa;
 
 void setup()
 {
-    Serial.begin(9600);
-    placa.definirSenha("123");
+
+    placa.tempoEntrePassos(1); //tempo em mSegundos entre os passos
+    placa.modoPasso(1); //modo full step
+    placa.motorpasso(200); //quantidade de passos a serem dados
 }
 
 void loop()
 {
-    char tecla = placa.teclado();
-    if (tecla != 'n' && tecla != '#')
-        placa.formarTentativaSenha(tecla);
-
-    if (tecla == '#')
-    {
-        if (placa.verificarSenha())
-            placa.rele(1, ALTERNAR);
-
-            else
-            Serial.println("SENHA ERRADA");
-
-            placa.limparTentativaSenha();
-    }
-    placa.display(placa.getSenha());
+   //função necessária para movimentar o motor, retorna zero quando
+   // o motor estiver parado
+   bool motorRodadando = placa.motorpassoUPDATE(); 
+   if(motorRodadando)
+   {
+       Serial.println("motor em movimento");
+   }
 }
-

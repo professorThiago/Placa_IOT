@@ -10,6 +10,11 @@
 #define BOTAO1 16
 #define BOTAO2 2
 #define BOTAO3 0
+#define DirMotorPasso 8 //! ???????
+#define PINPASSO 9 //! ??????????
+#define MS1 12
+#define MS2 11
+#define MS3 10 
 
 #include <Arduino.h>
 #include <Adafruit_MCP23X17.h>
@@ -40,6 +45,12 @@ private:
     unsigned long tempoUltimaLeituraTeclado;
     String password = "";
     String senha = "";
+    unsigned long tempoEntreLeiturasTeclado = 100;
+    int tarefaPasso=0;
+    bool tarefaPassoExecutando = 0;
+    unsigned long _tempoEntrePassos = 5;
+    unsigned long tempoInicialPassos = 0;
+    void passo();
 
 public:
     Placa_IOT();
@@ -54,12 +65,15 @@ public:
     void display(char dA, char dB, char dC, char dD, uint8_t dp);
     bool botaoApertado(uint8_t botao, bool borda);
     char teclado();
-    void formarTentativaSenha(char caractere);
+    void formarPalavraSenha(char caractere);
     void definirSenha(String senha);
-    void limparTentativaSenha();
+    void limparPalavraSenha();
     bool verificarSenha();
     String getSenha();
-    unsigned long tempoEntreLeiturasTeclado = 100;
+    void motorpasso(int passo);
+    bool motorpassoUPDATE();
+    void tempoEntrePassos(unsigned long tempo);
+    void modoPasso(uint8_t);
 };
 
 #endif
