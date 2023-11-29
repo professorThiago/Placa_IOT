@@ -1,1 +1,3 @@
 # Placa_IOT
+
+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
