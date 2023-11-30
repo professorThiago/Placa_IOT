@@ -1,3 +1,3 @@
 # Placa_IOT
 
-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
+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
